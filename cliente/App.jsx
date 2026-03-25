@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { initializeApp } from 'firebase/app';
+import { initializeApp, getApps } from 'firebase/app';
 import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from 'firebase/auth';
 import { getFirestore, collection, addDoc, serverTimestamp, getDocs, query, orderBy } from 'firebase/firestore';
 import { 
@@ -11,21 +11,28 @@ import {
 } from 'lucide-react';
 
 // --- CONFIGURAÇÃO FIREBASE ---
-const firebaseConfig = typeof __firebase_config !== 'undefined' 
-  ? JSON.parse(__firebase_config) 
-  : {
-      apiKey: "",
-      authDomain: "",
-      projectId: "",
-      storageBucket: "",
-      messagingSenderId: "",
-      appId: ""
-    };
+// IMPORTANTE: Para salvar os dados, você deve preencher os campos abaixo com as informações 
+// do seu projeto no Console do Firebase (Configurações do Projeto > Seus Aplicativos)
+const firebaseConfig = {
+  apiKey: "COLE_SUA_API_KEY_AQUI",
+  authDomain: "SEU_PROJETO.firebaseapp.com",
+  projectId: "SEU_PROJETO_ID",
+  storageBucket: "SEU_PROJETO.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:abcdef"
+};
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-const appId = typeof __app_id !== 'undefined' ? __app_id : 'vistoria-ubs-final';
+// Inicialização Protegida
+let app, auth, db;
+const isConfigValid = firebaseConfig.apiKey && firebaseConfig.apiKey !== "COLE_SUA_API_KEY_AQUI";
+
+if (isConfigValid) {
+  app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
+  auth = getAuth(app);
+  db = getFirestore(app);
+}
+
+const appId = 'vistoria-ubs-final';
 
 // --- COMPONENTE DE PERGUNTA ---
 const QuestionBlock = ({ label, id, icon: Icon, desc, responses, updateResponse, handlePhoto }) => {
@@ -126,13 +133,10 @@ export default function App() {
   });
 
   useEffect(() => {
+    if (!isConfigValid) return;
     const initAuth = async () => {
       try {
-        if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-          await signInWithCustomToken(auth, __initial_auth_token);
-        } else {
-          await signInAnonymously(auth);
-        }
+        await signInAnonymously(auth);
       } catch (e) {
         console.error("Erro na autenticação", e);
       }
@@ -143,7 +147,7 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    if (view === 'dashboard' && user) {
+    if (view === 'dashboard' && user && db) {
       const fetchDocs = async () => {
         try {
           const q = query(collection(db, 'artifacts', appId, 'public', 'data', 'vistorias'), orderBy('createdAt', 'desc'));
@@ -169,17 +173,19 @@ export default function App() {
 
   const salvarVistoria = async (e) => {
     e.preventDefault();
-    if (!user) return;
+    if (!isConfigValid) {
+      alert("Firebase não configurado. O relatório não será salvo no banco.");
+      setView('report');
+      return;
+    }
     setLoading(true);
-
     const horaFim = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const dadosFinais = { ...meta, horaFim };
-    
     try {
       await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'vistorias'), {
         ...dadosFinais,
         responses,
-        uid: user.uid,
+        uid: user?.uid || 'anonimo',
         createdAt: serverTimestamp()
       });
       setMeta(dadosFinais);
@@ -187,6 +193,7 @@ export default function App() {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error(err);
+      alert("Erro ao salvar dados.");
     } finally {
       setLoading(false);
     }
@@ -211,6 +218,11 @@ export default function App() {
   if (view === 'form') {
     return (
       <div className="min-h-screen bg-slate-50 pb-20 font-sans text-slate-900">
+        {!isConfigValid && (
+          <div className="bg-yellow-100 p-2 text-[10px] text-center font-bold text-yellow-800">
+            MODO OFFLINE (Sem Firebase)
+          </div>
+        )}
         <header className="bg-teal-700 text-white p-5 rounded-b-[2.5rem] shadow-xl sticky top-0 z-50 flex justify-between items-center">
           <div>
             <h1 className="text-lg font-black uppercase tracking-tight leading-none">Vistoria Campo</h1>
@@ -281,17 +293,23 @@ export default function App() {
           <div className="w-10"></div>
         </header>
         <main className="max-w-2xl mx-auto p-4 space-y-4">
-          {historico.map(vis => (
-            <div key={vis.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center group active:scale-95 transition-all">
-              <div>
-                <h3 className="font-black text-slate-800 uppercase text-sm">{vis.ubs}</h3>
-                <p className="text-[10px] text-slate-400 font-bold">{new Date(vis.dataVistoria).toLocaleDateString()} • {vis.encarregada}</p>
+          {!isConfigValid ? (
+            <div className="text-center p-10 text-slate-400 font-bold uppercase text-xs">Configure o Firebase para ver o histórico</div>
+          ) : historico.length === 0 ? (
+            <div className="text-center p-10 text-slate-400 font-bold uppercase text-xs">Nenhuma vistoria encontrada</div>
+          ) : (
+            historico.map(vis => (
+              <div key={vis.id} className="bg-white p-5 rounded-3xl shadow-sm border border-slate-100 flex justify-between items-center group active:scale-95 transition-all">
+                <div>
+                  <h3 className="font-black text-slate-800 uppercase text-sm">{vis.ubs}</h3>
+                  <p className="text-[10px] text-slate-400 font-bold">{vis.dataVistoria} • {vis.encarregada}</p>
+                </div>
+                <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${vis.notaVistoria < 6 ? 'bg-red-100 text-red-600' : 'bg-teal-100 text-teal-600'}`}>
+                  {vis.notaVistoria}
+                </div>
               </div>
-              <div className={`h-12 w-12 rounded-2xl flex items-center justify-center font-black text-lg ${vis.notaVistoria < 6 ? 'bg-red-100 text-red-600' : 'bg-teal-100 text-teal-600'}`}>
-                {vis.notaVistoria}
-              </div>
-            </div>
-          ))}
+            ))
+          )}
         </main>
       </div>
     );
