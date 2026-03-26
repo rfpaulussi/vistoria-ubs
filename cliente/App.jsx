@@ -149,19 +149,29 @@ export default function App() {
   const baixarPDF = async () => {
     setGerandoPdf(true);
     try {
-      window.scrollTo(0, 0);
-      await new Promise(resolve => setTimeout(resolve, 800));
+      window.scrollTo(0, 0); // Vai para o topo para evitar cortes
+      await new Promise(resolve => setTimeout(resolve, 800)); // Dá tempo pro celular renderizar
+      
       const elemento = document.getElementById('relatorio-pdf');
-      const canvas = await html2canvas(elemento, { scale: 1, useCORS: true, allowTaint: true });
+      
+      // Captura a tela (usando scale 1 para não travar a memória de celulares fracos)
+      const canvas = await html2canvas(elemento, { 
+        scale: 1, 
+        useCORS: true, 
+        allowTaint: true 
+      });
+      
       const imgData = canvas.toDataURL('image/jpeg', 0.8);
       const pdf = new jsPDF('p', 'mm', 'a4');
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      
       pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`Vistoria_${meta.ubs || 'UBS'}.pdf`);
+      
     } catch (erro) {
       console.error("Erro PDF:", erro);
-      alert("Falha ao gerar PDF.");
+      alert("Falha ao gerar o PDF. Erro Técnico: " + (erro.message || erro));
     } finally {
       setGerandoPdf(false);
     }
@@ -220,8 +230,8 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] pb-40 font-sans text-[#0f172a]">
-      {/* --- ÁREA QUE SAI NO PDF (TOTALMENTE CONVERTIDA PARA HEX, SEM ERROS) --- */}
-      <div id="relatorio-pdf" className="bg-[#ffffff] max-w-2xl mx-auto p-8 min-h-screen" style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
+      {/* --- ÁREA DO PDF (SEM SOMBRAS PARA EVITAR ERROS) --- */}
+      <div id="relatorio-pdf" className="bg-[#ffffff] max-w-2xl mx-auto p-8 min-h-screen border border-[#e2e8f0]" style={{ backgroundColor: '#ffffff', color: '#0f172a' }}>
         <div className="text-center mb-8 border-b-2 border-[#f1f5f9] pb-8">
           <h1 className="text-xs font-black uppercase tracking-widest text-[#94a3b8] mb-2">Relatório de Vistoria</h1>
           <h2 className="text-4xl font-black uppercase text-[#0f172a] leading-none">{meta.ubs || 'Unidade não informada'}</h2>
@@ -232,7 +242,7 @@ export default function App() {
         </div>
 
         <div className="flex justify-center mb-10">
-          <div className="bg-[#0f172a] text-[#ffffff] p-6 rounded-[2.5rem] text-center min-w-[150px] shadow-2xl" style={{ backgroundColor: '#0f172a', color: '#ffffff' }}>
+          <div className="bg-[#0f172a] text-[#ffffff] p-6 rounded-[2.5rem] text-center min-w-[150px]" style={{ backgroundColor: '#0f172a', color: '#ffffff' }}>
             <p className="text-[10px] font-black text-[#2dd4bf] uppercase tracking-widest mb-1">Nota Final</p>
             <span className="text-6xl font-black">{meta.notaVistoria}</span>
           </div>
@@ -240,13 +250,13 @@ export default function App() {
 
         <section className="mb-12">
           <h3 className="font-black text-xl border-l-8 border-[#ef4444] pl-4 uppercase text-[#b91c1c] mb-6">Falhas Registradas</h3>
-          {irregularidades.length === 0 ? <div className="p-10 bg-[#f8fafc] rounded-3xl text-center text-[#94a3b8] font-bold uppercase text-xs">Unidade Conforme</div> : 
+          {irregularidades.length === 0 ? <div className="p-10 bg-[#f8fafc] rounded-3xl text-center text-[#94a3b8] font-bold uppercase text-xs border border-[#e2e8f0]">Unidade Conforme</div> : 
             <div className="space-y-8">
               {irregularidades.map(([key, data]) => (
-                <div key={key} className="p-6 rounded-[2rem] border-2 border-[#fef2f2] shadow-sm" style={{ backgroundColor: '#fef2f2' }}>
+                <div key={key} className="p-6 rounded-[2rem] border-2 border-[#fee2e2]" style={{ backgroundColor: '#fef2f2' }}>
                   <span className="font-black text-[#334155] text-xs uppercase block mb-3">{data.label}</span>
-                  <div className="bg-[#ffffff] p-4 rounded-2xl border border-[#fee2e2] mb-4 text-sm text-[#475569] font-medium italic" style={{ backgroundColor: '#ffffff' }}>"{data.reason || 'Sem justificativa.'}"</div>
-                  {data.photo && <img src={data.photo} className="rounded-3xl w-full h-64 object-cover shadow-md" alt="Evidência" />}
+                  <div className="bg-[#ffffff] p-4 rounded-2xl border border-[#fca5a5] mb-4 text-sm text-[#475569] font-medium italic" style={{ backgroundColor: '#ffffff' }}>"{data.reason || 'Sem justificativa.'}"</div>
+                  {data.photo && <img src={data.photo} className="rounded-2xl w-full h-auto object-cover border border-[#fca5a5]" alt="Evidência" />}
                 </div>
               ))}
             </div>
@@ -254,7 +264,7 @@ export default function App() {
         </section>
 
         {meta.consideracoesGerais && (
-          <section className="mb-12 p-6 bg-[#f8fafc] rounded-[2rem]" style={{ backgroundColor: '#f8fafc' }}>
+          <section className="mb-12 p-6 bg-[#f8fafc] rounded-[2rem] border border-[#e2e8f0]" style={{ backgroundColor: '#f8fafc' }}>
             <h3 className="font-black text-sm uppercase text-[#334155] mb-3 flex items-center"><FileText size={16} className="mr-2"/> Considerações Gerais</h3>
             <p className="text-sm text-[#475569] italic">{meta.consideracoesGerais}</p>
           </section>
