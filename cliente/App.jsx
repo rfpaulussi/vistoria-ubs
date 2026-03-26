@@ -147,60 +147,43 @@ export default function App() {
   };
 
   const baixarPDF = async () => {
-  setGerandoPdf(true);
+    setGerandoPdf(true);
 
-  try {
-    const elemento = document.getElementById('relatorio-pdf');
+    try {
+      const elemento = document.getElementById('relatorio-pdf');
 
-    // 🔥 ATIVA MODO PDF
-    elemento.classList.add("pdf-mode");
+      // 🔥 ATIVA MODO PDF
+      if (elemento) elemento.classList.add("pdf-mode");
 
-    await new Promise(resolve => setTimeout(resolve, 300));
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-    const canvas = await html2canvas(elemento, {
-      scale: 1,
-      useCORS: true,
-      backgroundColor: "#ffffff"
-    });
+      const canvas = await html2canvas(elemento, {
+        scale: 1,
+        useCORS: true,
+        backgroundColor: "#ffffff"
+      });
 
-    // 🔥 REMOVE MODO PDF
-    elemento.classList.remove("pdf-mode");
+      // 🔥 REMOVE MODO PDF
+      if (elemento) elemento.classList.remove("pdf-mode");
 
-    const imgData = canvas.toDataURL('image/jpeg', 0.9);
+      const imgData = canvas.toDataURL('image/jpeg', 0.9);
 
-    const pdf = new jsPDF('p', 'mm', 'a4');
+      const pdf = new jsPDF('p', 'mm', 'a4');
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
 
-    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+      pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
 
-    pdf.save(`Vistoria_${meta.ubs || 'UBS'}.pdf`);
+      pdf.save(`Vistoria_${meta.ubs || 'UBS'}.pdf`);
 
-  } catch (erro) {
-    console.error("Erro PDF:", erro);
-    alert("Falha ao gerar o PDF");
-  } finally {
-    setGerandoPdf(false);
-  }
-};
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.8);
-
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-
-    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
-    pdf.save(`Vistoria_${meta.ubs || 'UBS'}.pdf`);
-
-  } catch (erro) {
-    console.error("Erro PDF:", erro);
-    alert("Falha ao gerar o PDF. Erro Técnico: " + (erro.message || erro));
-  } finally {
-    setGerandoPdf(false);
-  }
-};
+    } catch (erro) {
+      console.error("Erro PDF:", erro);
+      alert("Falha ao gerar o PDF. Erro Técnico: " + (erro.message || erro));
+    } finally {
+      setGerandoPdf(false);
+    }
+  };
 
   const compartilharWhatsApp = () => {
     const falhas = Object.entries(responses).filter(([_, data]) => data.status === data.trigger).map(([_, data]) => `• ${data.label}: ${data.reason}`).join('\n');
