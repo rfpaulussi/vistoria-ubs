@@ -94,3 +94,22 @@ select:focus {
 ::selection {
   @apply bg-teal-600 text-white;
 }
+
+/* =========================
+   🔥 MODO PDF (CORREÇÃO)
+   ========================= */
+
+.pdf-mode,
+.pdf-mode * {
+  color: #000 !important;
+  background-color: #fff !important;
+  border-color: #000 !important;
+
+  /* remove coisas que quebram o canvas */
+  box-shadow: none !important;
+  text-shadow: none !important;
+  filter: none !important;
+
+  /* força render simples */
+  backdrop-filter: none !important;
+}
