@@ -150,30 +150,40 @@ export default function App() {
   setGerandoPdf(true);
 
   try {
-    window.scrollTo(0, 0);
-    await new Promise(resolve => setTimeout(resolve, 800));
-
     const elemento = document.getElementById('relatorio-pdf');
+
+    // 🔥 ATIVA MODO PDF
+    elemento.classList.add("pdf-mode");
+
+    await new Promise(resolve => setTimeout(resolve, 300));
 
     const canvas = await html2canvas(elemento, {
       scale: 1,
       useCORS: true,
-      allowTaint: true,
-
-      // 🔥 CORREÇÃO PRINCIPAL AQUI
-      onclone: (doc) => {
-        const all = doc.querySelectorAll("*");
-
-        all.forEach((el) => {
-          const style = window.getComputedStyle(el);
-
-          // força conversão para RGB (remove oklch)
-          el.style.color = style.color;
-          el.style.backgroundColor = style.backgroundColor;
-          el.style.borderColor = style.borderColor;
-        });
-      }
+      backgroundColor: "#ffffff"
     });
+
+    // 🔥 REMOVE MODO PDF
+    elemento.classList.remove("pdf-mode");
+
+    const imgData = canvas.toDataURL('image/jpeg', 0.9);
+
+    const pdf = new jsPDF('p', 'mm', 'a4');
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+
+    pdf.addImage(imgData, 'JPEG', 0, 0, pdfWidth, pdfHeight);
+
+    pdf.save(`Vistoria_${meta.ubs || 'UBS'}.pdf`);
+
+  } catch (erro) {
+    console.error("Erro PDF:", erro);
+    alert("Falha ao gerar o PDF");
+  } finally {
+    setGerandoPdf(false);
+  }
+};
 
     const imgData = canvas.toDataURL('image/jpeg', 0.8);
 
